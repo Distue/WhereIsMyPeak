@@ -1,0 +1,12 @@
+Package: WhereIsMyPeak
+Type: Package
+Title: Annotate peaks (GRanges regions) for the genomic location. 
+Version: 0.1
+Date: 2015-03-24
+Author: Thomas Schwarzl <schwarzl@embl.de>
+Maintainer: schwarzl@embl.de
+Description: WhereIsMyPeak annotates peaks and focuses on situations where
+features overlap. Priorisation for region type and gene type is supported.
+This package is an extension of functionality of ChIPseeker by 
+Guangchuang Yu <guangchuangyu@gmail.com>
+License: Artistic-2.0

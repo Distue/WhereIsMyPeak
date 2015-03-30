@@ -1,0 +1,71 @@
+---
+title: "WhereIsMyPeak"
+author: "Thomas Schwarzl"
+date: "24 March 2015"
+output: html_document
+---
+
+
+Where is my peak? 
+
+Genomic annotation with priorisation what gene types you are interested. This package was inspired
+by ChIPseeker, however overcomes limited functionlity in Genomic Annotation.
+
+This is currently under development.
+
+```{r, eval=FALSE} 
+
+library(WhereIsMyPeak)
+library(GenomicFeatures)
+library(BiocParallel)
+library(biomaRt)
+
+data("peaks", package="WhereIsMyPeak")
+   
+# ENSEMBL GENES 75
+txdb <- makeTranscriptDbFromBiomart( biomart         = "ENSEMBL_MART_ENSEMBL",
+                                     dataset         = "hsapiens_gene_ensembl",
+                                     transcript_ids  = NULL,
+                                     filters         = "",
+                                     id_prefix       = "ensembl_",
+                                     host            = "feb2014.archive.ensembl.org",
+                                     port            = 80,
+                                     miRBaseBuild    = NA )
+
+#listMarts(host="feb2014.archive.ensembl.org")
+
+ensembl75 <- useMart(host="feb2014.archive.ensembl.org", biomart="ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl")        
+ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl75)   
+
+mappingTable <- getBM(c("ensembl_gene_id", "gene_biotype") , filters="", values=T, uniqueRows = TRUE, mart=ensembl)  
+rownames(mappingTable) <- mappingTable[,1]  
+
+namingTable <- getBM(c("ensembl_gene_id", "external_gene_id", "description") , filters="", values=T, uniqueRows = TRUE, mart=ensembl)  
+rownames(namingTable) <- namingTable[,1]
+namingTable <- namingTable[,-1]
+
+annotatedPeaks <- WhereIsMyPeak(peaks, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable)
+```
+
+
+If peaks were in a list and you have to remove the "chr" of the chromosome name, then you would do something like this.
+
+```{r, eval=FALSE} 
+annotatedPeaks <- bplapply(peaks.filtered.list, function(x) {
+      ttt <- as.data.frame(x)
+      ttt[,1] <- gsub("chr", "", ttt[,1])
+      ttt <- ttt[,-4]
+      ttt <- makeGRangesFromDataFrame(ttt, keep.extra.columns = T)
+      WhereIsMyPeak(ttt, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable)
+})
+
+```
+
+To benchmark this package, do this:
+
+```{r, eval=FALSE} 
+devtools::install_github("hadley/lineprof")
+library(lineprof)
+x <- lineprof(WhereIsMyPeak(peaks, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable),)
+shine(x)
+```
