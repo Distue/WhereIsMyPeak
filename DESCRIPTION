@@ -5,6 +5,6 @@ Version: 0.1
 Date: 2015-03-24
 Author: Thomas Schwarzl <schwarzl@embl.de>
 Maintainer: Thomas Schwarzl <schwarzl@embl.de>
-Description: WhereIsMyPeak annotates peaks and focuses on situations where features overlap. Priorisation for region type and gene type is supported. This package is an extension of functionality of ChIPseeker by Guangchuang Yu <guangchuangyu@gmail.com>
+Description: WhereIsMyPeak annotates peaks and focuses on situations where features overlap. Priorisation for region type and gene type is supported. This package is an extension of functionality of ChIPseeker by Guangchuang Yu guangchuangyu@gmail.com
 Depends: GenomicFeatures, BiocParallel, biomaRt, GenomicRanges, AnnotationDbi, IRanges, S4Vectors
 License: Artistic-2.0
