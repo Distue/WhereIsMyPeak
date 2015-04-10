@@ -1,4 +1,3 @@
-
 ##' WhereIsMyPeak - Annotate GenomicRanges for gene location
 ##'
 ##' @title WhereIsMyPeak
@@ -17,7 +16,8 @@
 ##' @export
 ##' @author Thomas Schwarzl
 WhereIsMyPeak <- function(peaks,
-                          annotationOrder = c("CDS", "5' UTR", "3' UTR", "Intron"),
+                          annotationOrder = c("Exon", "Intron"),
+                          exonAnnotationOrder = c("CDS", "5' UTR", "3' UTR"),
                           typeOrder = c( "non_coding",
                                          "known_ncrna",
                                          "rRNA",
@@ -113,8 +113,25 @@ WhereIsMyPeak <- function(peaks,
                hits <- anno$types[[an]][[as.character(i)]]
                gene.ids <- unique(txtoid[hits,1])
                # when more one gene ids are returned
-               pri.id  <- list(id = gene.ids[1], type = mappingTable[gene.ids[1],2] )
-               .getPriorityID( gene.ids, mappingTable, typeOrder ) 
+               pri.id  <- .getPriorityID( gene.ids, mappingTable, typeOrder )
+               
+               if(an == "Exon") { 
+                  for(an2 in exonAnnotationOrder) {
+                     if( !is.null(anno$types[[an2]]) && !is.na(anno$types[[an2]]) ) {
+                        # if we have a hit
+                        if( !is.null(anno$types[[an2]][[as.character(i)]]) ) {
+                           hits2 <- anno$types[[an2]][[as.character(i)]]
+                           gene.ids2 <- unique(txtoid[hits2,1])
+                           
+                           if(pri.id$id %in% gene.ids2) {
+                              return(list(region = an2, gene.id = pri.id$id, type = pri.id$type))
+                           }
+                        } 
+                     }
+                  }
+               } 
+               
+               
                return(list(region = an, gene.id = pri.id$id, type = pri.id$type))
             }
          }
@@ -230,7 +247,7 @@ WhereIsMyPeak <- function(peaks,
    regions[["Intron"]]   <- intronsByTranscript( txdb, use.names = T ) 
    regions[["5' UTR"]]   <- fiveUTRsByTranscript( txdb, use.names = T)
    regions[["3' UTR"]]   <- threeUTRsByTranscript(txdb, use.names = T)
-   #regions[["Exon"]]     <- exonsBy(txdb, by = "tx", use.names = T)
+   regions[["Exon"]]     <- exonsBy(txdb, by = "tx", use.names = T)
    #}  
    return(regions)
 }
