@@ -4,7 +4,8 @@
 \alias{WhereIsMyPeak}
 \title{WhereIsMyPeak}
 \usage{
-WhereIsMyPeak(peaks, annotationOrder = c("CDS", "5' UTR", "3' UTR", "Intron"),
+WhereIsMyPeak(peaks, annotationOrder = c("Exon", "Intron"),
+  exonAnnotationOrder = c("CDS", "5' UTR", "3' UTR"),
   typeOrder = c("non_coding", "known_ncrna", "rRNA", "snoRNA", "snRNA",
   "miRNA", "lincRNA", "Mt_rRNA", "Mt_tRNA", "sense_intronic",
   "transcribed_processed_pseudogene", "transcribed_unitary_pseudogene",
