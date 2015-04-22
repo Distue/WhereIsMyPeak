@@ -44,7 +44,7 @@ namingTable <- getBM(c("ensembl_gene_id", "external_gene_id", "description") , f
 rownames(namingTable) <- namingTable[,1]
 namingTable <- namingTable[,-1]
 
-txdbParsed <- initWhereIsMyPeak(txdb)
+txdbParsed <- initRegions(txdb)
 annotatedPeaks <- WhereIsMyPeak(peaks, txdbParsed, mappingTable=mappingTable, namingTable=namingTable)
 ```
 
@@ -92,7 +92,7 @@ To benchmark this package, do this:
 
 
 ```{r} 
-txdbParsed <- initWhereIsMyPeak(txdb)
+txdbParsed <- initRegions(txdb)
 annotationOrder = c("Exon", "Intron")
 exonAnnotationOrder = c("CDS", "5' UTR", "3' UTR")
 typeOrder = c( "non_coding",
