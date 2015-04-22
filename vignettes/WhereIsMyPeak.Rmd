@@ -44,28 +44,100 @@ namingTable <- getBM(c("ensembl_gene_id", "external_gene_id", "description") , f
 rownames(namingTable) <- namingTable[,1]
 namingTable <- namingTable[,-1]
 
-annotatedPeaks <- WhereIsMyPeak(peaks, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable)
+txdbParsed <- initWhereIsMyPeak(txdb)
+annotatedPeaks <- WhereIsMyPeak(peaks, txdbParsed, mappingTable=mappingTable, namingTable=namingTable)
+```
+
+
+```{r} 
+
+# annotatedPeaks <- lapply(peaks.filtered.list, function(x) {
+#       ttt <- as.data.frame(x)
+#       ttt[,1] <- gsub("chr", "", ttt[,1])
+#       ttt <- ttt[,-4]
+#       ttt <- makeGRangesFromDataFrame(ttt, keep.extra.columns = T)
+#       WhereIsMyPeak(ttt, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable)
+# })
 ```
 
 
 If peaks were in a list and you have to remove the "chr" of the chromosome name, then you would do something like this.
 
 ```{r, eval=FALSE} 
-annotatedPeaks <- bplapply(peaks.filtered.list, function(x) {
-      ttt <- as.data.frame(x)
-      ttt[,1] <- gsub("chr", "", ttt[,1])
-      ttt <- ttt[,-4]
-      ttt <- makeGRangesFromDataFrame(ttt, keep.extra.columns = T)
-      WhereIsMyPeak(ttt, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable)
-})
+# annotatedPeaks <- lapply(peaks.filtered.list, function(x) {
+#       ttt <- as.data.frame(x)
+#       ttt[,1] <- gsub("chr", "", ttt[,1])
+#       ttt <- ttt[,-4]
+#       ttt <- makeGRangesFromDataFrame(ttt, keep.extra.columns = T)
+#       WhereIsMyPeak(ttt, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable)
+# })
 
 ```
 
 To benchmark this package, do this:
 
 ```{r, eval=FALSE} 
-devtools::install_github("hadley/lineprof")
-library(lineprof)
-x <- lineprof(WhereIsMyPeak(peaks, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable),)
-shine(x)
+# devtools::install_github("hadley/lineprof")
+# library(lineprof)
+# x <- lineprof(WhereIsMyPeak(peaks, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable),)
+# shine(x)
 ```
+
+
+```{r} 
+
+# peaks <- makeGRangesFromDataFrame(as.data.frame(data.frame(chrom=c("3", "1"), start=c(142139167, 1),	end=c(142139183,2), strand=c("*", "+"))))
+
+```
+
+
+```{r} 
+txdbParsed <- initWhereIsMyPeak(txdb)
+annotationOrder = c("Exon", "Intron")
+exonAnnotationOrder = c("CDS", "5' UTR", "3' UTR")
+typeOrder = c( "non_coding",
+                 "known_ncrna",
+                 "rRNA",
+                 "snoRNA",
+                 "snRNA",
+                 "miRNA", 
+                 "lincRNA", 
+                 "Mt_rRNA", 
+                 "Mt_tRNA",
+                 "sense_intronic",
+                 "transcribed_processed_pseudogene",
+                 "transcribed_unitary_pseudogene",   
+                 "transcribed_unprocessed_pseudogene",
+                 "translated_processed_pseudogene",
+                 "translated_unprocessed_pseudogene",
+                 "unitary_pseudogene",
+                 "unprocessed_pseudogene",
+                 "sense_overlapping",
+                 "3prime_overlapping_ncrna",   
+                 "antisense",
+                 "IG_C_gene",
+                 "IG_D_gene",
+                 "IG_J_gene",
+                 "IG_V_gene",
+                 "IG_C_pseudogene", 
+                 "IG_J_pseudogene",
+                 "IG_V_pseudogene", 
+                 "polymorphic_pseudogene",
+                 "misc_RNA",
+                 "TEC",
+                 "TR_C_gene",
+                 "TR_D_gene",
+                 "TR_J_gene",
+                 "TR_J_pseudogene",
+                 "TR_V_gene",
+                 "TR_V_pseudogene",
+                 "pseudogene",
+                 "processed_pseudogene", 
+                 "processed_transcript",
+                 "LRG_gene", 
+                 "protein_coding")
+
+out <- WhereIsMyPeak(peaks,  txdbParsed, mappingTable, namingTable,
+                     annotationOrder, exonAnnotationOrder, typeOrder)
+```
+

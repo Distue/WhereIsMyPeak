@@ -1,70 +1,5 @@
-##' WhereIsMyPeak - Annotate GenomicRanges for gene location
-##'
-##' @title WhereIsMyPeak
-##' @param peaks peaks as GRanges object
-##' @param txdb txdb annotation data base
-##' @param annotationOrder character vector of prioritising genomic locations for annotation
-##' @param typeOrder character vector prioritising gene types if a tied match
-##' @param mappingTable mappingTable
-##' @param namingTable namingTable
-##' @importFrom GenomicFeatures cdsBy
-##' @importFrom GenomicFeatures intronsByTranscript
-##' @importFrom GenomicFeatures threeUTRsByTranscript
-##' @importFrom GenomicFeatures fiveUTRsByTranscript
-##' @importFrom BiocParallel bplapply
-##' @return list of results
 ##' @export
-##' @author Thomas Schwarzl
-WhereIsMyPeak <- function(peaks,
-                          annotationOrder = c("Exon", "Intron"),
-                          exonAnnotationOrder = c("CDS", "5' UTR", "3' UTR"),
-                          typeOrder = c( "non_coding",
-                                         "known_ncrna",
-                                         "rRNA",
-                                         "snoRNA",
-                                         "snRNA",
-                                         "miRNA", 
-                                         "lincRNA", 
-                                         "Mt_rRNA", 
-                                         "Mt_tRNA",
-                                         "sense_intronic",
-                                         "transcribed_processed_pseudogene",
-                                         "transcribed_unitary_pseudogene",   
-                                         "transcribed_unprocessed_pseudogene",
-                                         "translated_processed_pseudogene",
-                                         "translated_unprocessed_pseudogene",
-                                         "unitary_pseudogene",
-                                         "unprocessed_pseudogene",
-                                         "sense_overlapping",
-                                         "3prime_overlapping_ncrna",   
-                                         "antisense",
-                                         "IG_C_gene",
-                                         "IG_D_gene",
-                                         "IG_J_gene",
-                                         "IG_V_gene",
-                                         "IG_C_pseudogene", 
-                                         "IG_J_pseudogene",
-                                         "IG_V_pseudogene", 
-                                         "polymorphic_pseudogene",
-                                         "misc_RNA",
-                                         "TEC",
-                                         "TR_C_gene",
-                                         "TR_D_gene",
-                                         "TR_J_gene",
-                                         "TR_J_pseudogene",
-                                         "TR_V_gene",
-                                         "TR_V_pseudogene",
-                                         "pseudogene",
-                                         "processed_pseudogene", 
-                                         "processed_transcript",
-                                         "LRG_gene", 
-                                         "protein_coding"),
-                          txdb = NULL,
-                          mappingTable = NULL,
-                          namingTable = NULL) {
-   
-   # if txdb is empty initate on through biomart query
-   txdb <- .initTxdb(txdb)
+initRegions <- function(txdb = NULL) {
    
    # initate mappingTable
    mappingTable <- .initMappingTable(mappingTable)
@@ -82,29 +17,104 @@ WhereIsMyPeak <- function(peaks,
    #stopifnot(all(annotationOrder %in% c("3'UTR", "5'UTR", "Exon", "Intron")))
    #stopifnot(all(annotationOrder %in% c("protein_coding", "ncRNA", "Bla", "Intron")))
    
+   
+   # if txdb is empty initate on through biomart query
+   txdb <- .initTxdb(txdb)
+   
+   # initate the regions which should be annotated
+   regions <- .initRegions(txdb)
+   
+   txtoid <- suppressWarnings(select(txdb, columns=c("TXNAME"), keys=keys(txdb), select="all", keytype=c("GENEID")))
+   rownames(txtoid) <- txtoid[,2]
+   
+   return(list(regions = regions, txtoid = txtoid))
+}
+
+##' WhereIsMyPeak - Annotate GenomicRanges for gene location
+##'
+##' @title WhereIsMyPeak
+##' @param intervals peaks as GRanges object
+##' @param txdb txdb annotation data base
+##' @param annotationOrder character vector of prioritising genomic locations for annotation
+##' @param typeOrder character vector prioritising gene types if a tied match
+##' @param mappingTable mappingTable
+##' @param namingTable namingTable
+##' @importFrom GenomicFeatures cdsBy
+##' @importFrom GenomicFeatures intronsByTranscript
+##' @importFrom GenomicFeatures threeUTRsByTranscript
+##' @importFrom GenomicFeatures fiveUTRsByTranscript
+##' @importFrom BiocParallel bplapply
+##' @importFrom GenomicRanges as.data.frame
+##' @return list of results
+##' @export
+##' @author Thomas Schwarzl
+WhereIsMyPeak <- function(intervals,
+                          txdbParsed,
+                          mappingTable = NULL,
+                          namingTable = NULL,
+                           annotationOrder = c("Exon", "Intron"),
+                           exonAnnotationOrder = c("CDS", "5' UTR", "3' UTR"),
+                           typeOrder = c( "non_coding",
+                                          "known_ncrna",
+                                          "rRNA",
+                                          "snoRNA",
+                                          "snRNA",
+                                          "miRNA", 
+                                          "lincRNA", 
+                                          "Mt_rRNA", 
+                                          "Mt_tRNA",
+                                          "sense_intronic",
+                                          "transcribed_processed_pseudogene",
+                                          "transcribed_unitary_pseudogene",   
+                                          "transcribed_unprocessed_pseudogene",
+                                          "translated_processed_pseudogene",
+                                          "translated_unprocessed_pseudogene",
+                                          "unitary_pseudogene",
+                                          "unprocessed_pseudogene",
+                                          "sense_overlapping",
+                                          "3prime_overlapping_ncrna",   
+                                          "antisense",
+                                          "IG_C_gene",
+                                          "IG_D_gene",
+                                          "IG_J_gene",
+                                          "IG_V_gene",
+                                          "IG_C_pseudogene", 
+                                          "IG_J_pseudogene",
+                                          "IG_V_pseudogene", 
+                                          "polymorphic_pseudogene",
+                                          "misc_RNA",
+                                          "TEC",
+                                          "TR_C_gene",
+                                          "TR_D_gene",
+                                          "TR_J_gene",
+                                          "TR_J_pseudogene",
+                                          "TR_V_gene",
+                                          "TR_V_pseudogene",
+                                          "pseudogene",
+                                          "processed_pseudogene", 
+                                          "processed_transcript",
+                                          "LRG_gene", 
+                                          "protein_coding")) {
+   
+   regions = txdbParsed[["regions"]]
+   txtoid = txdbParsed[["txtoid"]]
+   
+   
    # initiate the empty data structure to store all information
    anno <- list( 
       #types = setNames(rep(NA, 4), c("CDS", "Intron", "5' UTR", "3' UTR")),
       info = list( dataset = "hsapiens_gene_ensembl" ,
                    biomart = "ensembl"),
-      final = rep("NA", length(peaks))
+      final = rep("NA", length(intervals))
    )
    
-   # initate the regions which should be annotated
-   regions <- .initRegions(txdb)
-   
-   
    # This is the most time consuming step
-   anno[["types"]] <- bplapply(regions, function(x, peaks. = peaks) { 
-      annotatedPeaksForRegion(peaks., region = x)
+   anno[["types"]] <- bplapply(regions, function(x, intervals. = intervals) { 
+      annotatedPeaksForRegion(intervals., region = x)
    })
    
-   txtoid <- suppressWarnings(select(txdb, columns=c("TXNAME"), keys=keys(txdb), select="all", keytype=c("GENEID")))
-   
-   rownames(txtoid) <- txtoid[,2]
-   
    # Decide which annotation is the best
-   decision <- lapply(1:length(peaks), function(i) {
+   decision <- lapply(1:length(intervals), function(i) {
       for(an in annotationOrder) {
          # check if annotation is not empty
          if( !is.null(anno$types[[an]]) && !is.na(anno$types[[an]]) ) {
@@ -176,7 +186,10 @@ WhereIsMyPeak <- function(peaks,
    
    anno[["finalPlotType"]] <- getTypeForPlot(anno[["finalRegion"]], anno[["finalType"]])
    
-   annoFrame <- cbind(as.data.frame(peaks), do.call(cbind, anno[c("finalID", "finalRegion", "finalDesc", "finalType", "finalPlotType")]))
+   gr.df <- as.data.frame(intervals)
+   stopifnot(is.data.frame(gr.df))
+   
+   annoFrame <- cbind(gr.df, do.call(cbind, anno[c("finalID", "finalDesc", "finalRegion", "finalType", "finalPlotType")]))
    
    return(annoFrame)
 }
@@ -257,23 +270,23 @@ WhereIsMyPeak <- function(peaks,
 ##' @importFrom S4Vectors queryHits
 ##' @importFrom S4Vectors subjectHits
 ##' @importMethodsFrom BiocGenerics unlist
-annotatedPeaksForRegion <- function(peaks, region) {
+annotatedPeaksForRegion <- function(intervals, region) {
    region.gr <- unlist(region)
    region.len <- elementLengths(region)
    
    # find all overlaps
-   peaks.overlaps <- findOverlaps(peaks, region.gr, ignore.strand = FALSE)
+   intervals.overlaps <- findOverlaps(intervals, region.gr, ignore.strand = FALSE)
    
    # return false for all if no overlaps are found
-   if (length(peaks.overlaps) == 0) {
-      return(list(rep(FALSE, length(peaks))))
+   if (length(intervals.overlaps) == 0) {
+      return(list(rep(FALSE, length(intervals))))
    }
    
-   peaks.overlaps.query.hits <- queryHits(peaks.overlaps)
-   peaks.overlaps.subject.hits <- subjectHits(peaks.overlaps)
+   intervals.overlaps.query.hits <- queryHits(intervals.overlaps)
+   intervals.overlaps.subject.hits <- subjectHits(intervals.overlaps)
    
-   hits <- lapply(setNames(unique(peaks.overlaps.query.hits), unique(peaks.overlaps.query.hits)), function(i) {
-      overlap.ids <- peaks.overlaps.subject.hits[peaks.overlaps.query.hits == i]
+   hits <- lapply(setNames(unique(intervals.overlaps.query.hits), unique(intervals.overlaps.query.hits)), function(i) {
+      overlap.ids <- intervals.overlaps.subject.hits[intervals.overlaps.query.hits == i]
       names(region.gr[overlap.ids])
    })
    hits

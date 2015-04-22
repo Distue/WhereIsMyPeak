@@ -4,7 +4,8 @@
 \alias{WhereIsMyPeak}
 \title{WhereIsMyPeak}
 \usage{
-WhereIsMyPeak(peaks, annotationOrder = c("Exon", "Intron"),
+WhereIsMyPeak(intervals, txdbParsed, mappingTable = NULL,
+  namingTable = NULL, annotationOrder = c("Exon", "Intron"),
   exonAnnotationOrder = c("CDS", "5' UTR", "3' UTR"),
   typeOrder = c("non_coding", "known_ncrna", "rRNA", "snoRNA", "snRNA",
   "miRNA", "lincRNA", "Mt_rRNA", "Mt_tRNA", "sense_intronic",
@@ -16,21 +17,20 @@ WhereIsMyPeak(peaks, annotationOrder = c("Exon", "Intron"),
   "IG_C_pseudogene", "IG_J_pseudogene", "IG_V_pseudogene",     
   "polymorphic_pseudogene", "misc_RNA", "TEC", "TR_C_gene", "TR_D_gene",
   "TR_J_gene", "TR_J_pseudogene", "TR_V_gene", "TR_V_pseudogene", "pseudogene",
-  "processed_pseudogene", "processed_transcript", "LRG_gene", "protein_coding"),
-  txdb = NULL, mappingTable = NULL, namingTable = NULL)
+  "processed_pseudogene", "processed_transcript", "LRG_gene", "protein_coding"))
 }
 \arguments{
-\item{peaks}{peaks as GRanges object}
+\item{intervals}{peaks as GRanges object}
+
+\item{mappingTable}{mappingTable}
+
+\item{namingTable}{namingTable}
 
 \item{annotationOrder}{character vector of prioritising genomic locations for annotation}
 
 \item{typeOrder}{character vector prioritising gene types if a tied match}
 
 \item{txdb}{txdb annotation data base}
-
-\item{mappingTable}{mappingTable}
-
-\item{namingTable}{namingTable}
 }
 \value{
 list of results
