@@ -5,23 +5,33 @@ date: "24 March 2015"
 output: html_document
 ---
 
+# Where is my peak? 
 
-Where is my peak? 
+WhereIsMyPeak does genomic annotation with priorisation what gene types you are interested. This package was inspired
+by ChIPseeker, however overcomes limited functionlity in the genomic annotation.
 
-Genomic annotation with priorisation what gene types you are interested. This package was inspired
-by ChIPseeker, however overcomes limited functionlity in Genomic Annotation.
-
-This is currently under development.
-
-```{r, eval=FALSE} 
-
+Load the package
+```{r} 
 library(WhereIsMyPeak)
 library(GenomicFeatures)
-library(BiocParallel)
 library(biomaRt)
+```
 
+## Load peaks
+
+Peaks or Intervals are stored as GRanges object. 
+
+Here we load a small example data set
+```{r} 
 data("peaks", package="WhereIsMyPeak")
-   
+peaks
+```
+
+## Load annotation
+
+Here we load load the annotation using a TxDB Ensembl Build from biomaRt. 
+
+```{r}
 # ENSEMBL GENES 75
 txdb <- makeTranscriptDbFromBiomart( biomart         = "ENSEMBL_MART_ENSEMBL",
                                      dataset         = "hsapiens_gene_ensembl",
@@ -32,10 +42,14 @@ txdb <- makeTranscriptDbFromBiomart( biomart         = "ENSEMBL_MART_ENSEMBL",
                                      port            = 80,
                                      miRBaseBuild    = NA )
 
-#listMarts(host="feb2014.archive.ensembl.org")
-
 ensembl75 <- useMart(host="feb2014.archive.ensembl.org", biomart="ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl")        
-ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl75)   
+```
+
+
+We load additional information about gene biotypes and gene description which is not available in the TxDB
+(Note: This package is currently under development, this could be included in a custom TxDB build in future)
+```{r} 
+ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl75) 
 
 mappingTable <- getBM(c("ensembl_gene_id", "gene_biotype") , filters="", values=T, uniqueRows = TRUE, mart=ensembl)  
 rownames(mappingTable) <- mappingTable[,1]  
@@ -43,58 +57,40 @@ rownames(mappingTable) <- mappingTable[,1]
 namingTable <- getBM(c("ensembl_gene_id", "external_gene_id", "description") , filters="", values=T, uniqueRows = TRUE, mart=ensembl)  
 rownames(namingTable) <- namingTable[,1]
 namingTable <- namingTable[,-1]
-
-txdbParsed <- initRegions(txdb)
-annotatedPeaks <- WhereIsMyPeak(peaks, txdbParsed, mappingTable=mappingTable, namingTable=namingTable)
 ```
 
+First we proprocess the txdb since it is not stable, loses connection and serialization is often broken when saved to disk. Also, when annotating multiple batches of peaks (GRanges objects), we do not have to proprocess every single time
 
 ```{r} 
-
-# annotatedPeaks <- lapply(peaks.filtered.list, function(x) {
-#       ttt <- as.data.frame(x)
-#       ttt[,1] <- gsub("chr", "", ttt[,1])
-#       ttt <- ttt[,-4]
-#       ttt <- makeGRangesFromDataFrame(ttt, keep.extra.columns = T)
-#       WhereIsMyPeak(ttt, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable)
-# })
+txdbParsed <- initRegions(txdb, mappingTable, namingTable)
 ```
 
+## Annoation Priority
 
-If peaks were in a list and you have to remove the "chr" of the chromosome name, then you would do something like this.
+Now we choose an annotation priority.
 
-```{r, eval=FALSE} 
-# annotatedPeaks <- lapply(peaks.filtered.list, function(x) {
-#       ttt <- as.data.frame(x)
-#       ttt[,1] <- gsub("chr", "", ttt[,1])
-#       ttt <- ttt[,-4]
-#       ttt <- makeGRangesFromDataFrame(ttt, keep.extra.columns = T)
-#       WhereIsMyPeak(ttt, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable)
-# })
+The first position is always prioritized. 
 
-```
+When a peak hits multiple features, there are decisions made:
 
-To benchmark this package, do this:
-
-```{r, eval=FALSE} 
-# devtools::install_github("hadley/lineprof")
-# library(lineprof)
-# x <- lineprof(WhereIsMyPeak(peaks, txdb=txdb, mappingTable=mappingTable, namingTable=namingTable),)
-# shine(x)
-```
-
-
+1) We prefer Exon annotation over Intron annotation
 ```{r} 
-
-# peaks <- makeGRangesFromDataFrame(as.data.frame(data.frame(chrom=c("3", "1"), start=c(142139167, 1),	end=c(142139183,2), strand=c("*", "+"))))
-
-```
-
-
-```{r} 
-txdbParsed <- initRegions(txdb)
 annotationOrder = c("Exon", "Intron")
+```
+
+2) We decide on Exon annation priority
+In Exon annotation, we prefer, CDS over 5', and 5' over 3' annotation. The rest is annotated as Exon. Note that non-coding RNAs for example do not have a CDS, therfore they still remain as Exon. 
+
+(Note: "rest" Exon over everything else will be implemented)  
+
+```{r} 
 exonAnnotationOrder = c("CDS", "5' UTR", "3' UTR")
+```
+
+3) We decide on types
+At last, we set types priority.  
+
+```{r} 
 typeOrder = c( "non_coding",
                  "known_ncrna",
                  "rRNA",
@@ -136,8 +132,57 @@ typeOrder = c( "non_coding",
                  "processed_transcript",
                  "LRG_gene", 
                  "protein_coding")
+````
 
-out <- WhereIsMyPeak(peaks,  txdbParsed, mappingTable, namingTable,
-                     annotationOrder, exonAnnotationOrder, typeOrder)
+## Annotate
+
+Then simply with one line we can annotate all peaks 
+
+```{r} 
+annotatedPeaks <- WhereIsMyPeak(peaks, txdbParsed, annotationOrder, exonAnnotationOrder, typeOrder)
 ```
+
+
+If peaks were in a list and you have to remove the "chr" of the chromosome name, then you would do something like this.
+
+## Shuffle
+
+This function shuffles annotated peaks, so that each annotated peak will return an unbound region on the same genomic information. For example, if the peak is on an exon, the shuffled peak will be on an exon of the same gene. If the peak was on an intron it will return a region on the same gene in the intron. It tries to preserve the width of the peak, if there is not enough 'rest - annotation' left, it will return the rest. If the peak was not annotated, it does not shuffle this peak because we do not know on what kind of feature it was.
+
+```{r} 
+shuffledPeaks <- shuffle(annotatedPeaks, txdbParsed)
+```
+
+
+##  Benchmark
+To benchmark this package, do this:
+
+```{r, eval=FALSE} 
+devtools::install_github("hadley/lineprof")
+library(lineprof)
+x <- lineprof(WhereIsMyPeak(peaks, txdbParsed, annotationOrder, exonAnnotationOrder, typeOrder))
+shine(x)
+```
+
+## Remove Chr
+
+If your peaks are not in the ensembl format, you want to remove the "chr" prefix
+and you want to rewrite the mitochondria information.
+
+```{r} 
+ensemblizePeaks <- function(x) {
+      x <- as.data.frame(x)
+      x[,1] <- gsub("chr", "", x[,1])
+      x[,1][ x[,1] == "M" ] = "MT"
+      x <- x[,-4]
+      return(makeGRangesFromDataFrame(x, keep.extra.columns = T))
+}
+```
+
+
+## Session Info
+```{r}
+sessionInfo()
+```
+
 

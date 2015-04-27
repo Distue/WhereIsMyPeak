@@ -1,22 +1,22 @@
+##' initRegions
+##'
+##' @title initRegions
+##' @param txdb txdb annotation data base
+##' @param mappingTable mappingTable
+##' @param namingTable namingTable
+##' @return list with preparsed TxDB information
 ##' @export
-initRegions <- function(txdb = NULL) {
-   
+##' @author Thomas Schwarzl
+initRegions <- function(txdb = NULL, mappingTable = NULL, namingTable = NULL) {
+   stopifnot(!is.null(namingTable))
+   stopifnot(!is.null(mappingTable))
+   stopifnot(!is.null(txdb))
+
    # initate mappingTable
    mappingTable <- .initMappingTable(mappingTable)
    
    # initate nameingTable
    namingTable <- .initNamingTable(namingTable)
-   
-   
-   
-   #.WhereIsMyPeakEnv(txdb)
-   # WhereIsMyPeakEnv <- get("WhereIsMyPeak", envir = .GlobalEnv)
-   
-   
-   # the annotation order must be complet
-   #stopifnot(all(annotationOrder %in% c("3'UTR", "5'UTR", "Exon", "Intron")))
-   #stopifnot(all(annotationOrder %in% c("protein_coding", "ncRNA", "Bla", "Intron")))
-   
    
    # if txdb is empty initate on through biomart query
    txdb <- .initTxdb(txdb)
@@ -24,10 +24,11 @@ initRegions <- function(txdb = NULL) {
    # initate the regions which should be annotated
    regions <- .initRegions(txdb)
    
+   # tx to id lookup table
    txtoid <- suppressWarnings(select(txdb, columns=c("TXNAME"), keys=keys(txdb), select="all", keytype=c("GENEID")))
    rownames(txtoid) <- txtoid[,2]
    
-   return(list(regions = regions, txtoid = txtoid))
+   return(list(regions = regions, txtoid = txtoid, mappingTable = mappingTable, namingTable = namingTable))
 }
 
 ##' WhereIsMyPeak - Annotate GenomicRanges for gene location
@@ -50,8 +51,6 @@ initRegions <- function(txdb = NULL) {
 ##' @author Thomas Schwarzl
 WhereIsMyPeak <- function(intervals,
                           txdbParsed,
-                          mappingTable = NULL,
-                          namingTable = NULL,
                            annotationOrder = c("Exon", "Intron"),
                            exonAnnotationOrder = c("CDS", "5' UTR", "3' UTR"),
                            typeOrder = c( "non_coding",
@@ -98,7 +97,8 @@ WhereIsMyPeak <- function(intervals,
    
    regions = txdbParsed[["regions"]]
    txtoid = txdbParsed[["txtoid"]]
-   
+   mappingTable = txdbParsed[["mappingTable"]]
+   namingTable = txdbParsed[["namingTable"]]  
    
    # initiate the empty data structure to store all information
    anno <- list( 
@@ -149,7 +149,7 @@ WhereIsMyPeak <- function(intervals,
    })
    
    # get the final annotation
-   anno[["finalDesc"]] <- t(sapply(decision, function(x) {
+   anno[["description"]] <- t(sapply(decision, function(x) {
       if(is.null(x)) { 
          return(rep(NA, ncol(namingTable)))
       } else { 
@@ -158,7 +158,7 @@ WhereIsMyPeak <- function(intervals,
    }))
    
    # get the final geneID
-   anno[["finalID"]] <- unlist(lapply(decision, function(x) {
+   anno[["ID"]] <- unlist(lapply(decision, function(x) {
       if(is.null(x)) { 
          return("NA")
       } else { 
@@ -167,7 +167,7 @@ WhereIsMyPeak <- function(intervals,
    }))
    
    # get the final geneID
-   anno[["finalType"]] <- unlist(lapply(decision, function(x) {
+   anno[["type"]] <- unlist(lapply(decision, function(x) {
       if(is.null(x)) { 
          return("NA")
       } else { 
@@ -176,7 +176,7 @@ WhereIsMyPeak <- function(intervals,
    }))
    
    # get the final region
-   anno[["finalRegion"]] <- unlist(lapply(decision, function(x) {
+   anno[["region"]] <- unlist(lapply(decision, function(x) {
       if(is.null(x)) { 
          return("NA")
       } else { 
@@ -184,15 +184,19 @@ WhereIsMyPeak <- function(intervals,
       }
    }))
    
-   anno[["finalPlotType"]] <- getTypeForPlot(anno[["finalRegion"]], anno[["finalType"]])
+   anno[["combinedRegionType"]] <- getTypeForPlot(anno[["region"]], anno[["type"]])
    
    gr.df <- as.data.frame(intervals)
    stopifnot(is.data.frame(gr.df))
    
-   annoFrame <- cbind(gr.df, do.call(cbind, anno[c("finalID", "finalDesc", "finalRegion", "finalType", "finalPlotType")]))
+   annoFrame <- cbind(gr.df, do.call(cbind, anno[c("ID", "description", "region", "type", "combinedRegionType")]))
+   
+   
+   makeGRangesFromDataFrame(out[,-4], keep.extra.columns = T)
    
    return(annoFrame)
 }
+
 
 
 .getPriorityID <- function( gene.ids, mappingTable, typeOrder ) {
@@ -213,6 +217,9 @@ WhereIsMyPeak <- function(intervals,
    } 
 }
 
+
+
+ 
 ##' @importFrom GenomicFeatures makeTranscriptDbFromBiomart
 .initTxdb <- function(txdb) {
    if(is.null(txdb)) {
@@ -293,12 +300,12 @@ annotatedPeaksForRegion <- function(intervals, region) {
 }
 
 
-getTypeForPlot <- function(finalType, finalRegion) {
-   stopifnot(length(finalType) == length(finalRegion))
+getTypeForPlot <- function(type, region) {
+   stopifnot(length(type) == length(region))
    
-   return(unlist(lapply(1:length(finalType), function(i) { 
-      .r <- finalRegion[[i]]
-      .t <- finalType[[i]]
+   return(unlist(lapply(1:length(type), function(i) { 
+      .r <- region[[i]]
+      .t <- type[[i]]
       
       if(.t %in% c("protein_coding") ) {
          return(.r)
@@ -308,6 +315,70 @@ getTypeForPlot <- function(finalType, finalRegion) {
    }) ))
 }
 
+##' Shuffles
+##'
+##' @title Shuffle
+##' @param annotatedPeaks GRanges object with a elementMetadata column 'region'
+##' @param txdbParsed parsed TxDB infro
+##' @return shuffled peaks
+##' @export
+shuffle <- function(annotatedPeaks, txdbParsed) {
+   shuffledPeaks <- lapply(annotatedPeaks, shuffleRegion, txdbParsed)
+   shuffledPeaks.only <- shuffledPeaks[unlist(lapply(shuffledPeaks, class)) == "GRanges"]
+   shuffledPeaks.only <- do.call(c, shuffledPeaks.only)
+
+   return(shuffledPeaks.only)
+}
 
 
+##' @importFrom IRanges setdiff
+##' @importFrom stats runif
+##' @export
+shuffleRegion <- function(interval, txdbParsed) {
+   # Test if region metadata column is avialable
+   stopifnot("region" %in% colnames(elementMetadata(annotatedPeaks)))
+   
+   region <- as.character(elementMetadata(interval)[,"region"])
+   id <- as.character(elementMetadata(interval)[,"ID"])
+   transcriptIDs <- txdbParsed[["txtoid"]][txdbParsed[["txtoid"]][,"GENEID"] == id,"TXNAME"]
+   
+   if(!is.na(region) & region != "NA") { 
+      if(region == "Intron") {
+         reg <- unlist(txdbParsed[["regions"]][["Intron"]][transcriptIDs])
+         .doRegionShuffle(interval, reg, txdbParsed)
+      } else { 
+         reg <- unlist(txdbParsed[["regions"]][["Exon"]][transcriptIDs])
+         .doRegionShuffle(interval, reg, txdbParsed) 
+      }
+   } else {
+      return(NA)
+   }
+}
 
+
+##' @importFrom IRanges setdiff
+##' @importFrom stats runif
+.doRegionShuffle <- function(interval, reg, txdbParsed) {
+   if(length(reg) > 0) {
+      non.peak.regions <- setdiff(reg, interval)
+      
+      cumsum.width <- cumsum(width(non.peak.regions))
+      selected.region.id <- runif(1, min = 1, max = cumsum.width[-1])
+      selected.region <- non.peak.regions[cumsum.width > selected.region.id][1]
+      
+      if(width(selected.region) < width(interval)) {
+         return(selected.region)
+      } else {
+         .start = runif(1, min = start(selected.region),
+                        max = (end(selected.region) - width(interval)))
+         
+         return( makeGRangesFromDataFrame(
+            data.frame(seqnames = seqnames(interval),
+                       start    = .start,
+                       end      = .start + width(interval),
+                       strand   = strand(interval))))          
+      }  
+   } else {
+      return(NA)
+   }
+}
