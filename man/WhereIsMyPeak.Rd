@@ -4,8 +4,7 @@
 \alias{WhereIsMyPeak}
 \title{WhereIsMyPeak}
 \usage{
-WhereIsMyPeak(intervals, txdbParsed, mappingTable = NULL,
-  namingTable = NULL, annotationOrder = c("Exon", "Intron"),
+WhereIsMyPeak(intervals, txdbParsed, annotationOrder = c("Exon", "Intron"),
   exonAnnotationOrder = c("CDS", "5' UTR", "3' UTR"),
   typeOrder = c("non_coding", "known_ncrna", "rRNA", "snoRNA", "snRNA",
   "miRNA", "lincRNA", "Mt_rRNA", "Mt_tRNA", "sense_intronic",
@@ -22,15 +21,15 @@ WhereIsMyPeak(intervals, txdbParsed, mappingTable = NULL,
 \arguments{
 \item{intervals}{peaks as GRanges object}
 
-\item{mappingTable}{mappingTable}
-
-\item{namingTable}{namingTable}
-
 \item{annotationOrder}{character vector of prioritising genomic locations for annotation}
 
 \item{typeOrder}{character vector prioritising gene types if a tied match}
 
 \item{txdb}{txdb annotation data base}
+
+\item{mappingTable}{mappingTable}
+
+\item{namingTable}{namingTable}
 }
 \value{
 list of results
