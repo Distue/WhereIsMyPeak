@@ -190,11 +190,7 @@ WhereIsMyPeak <- function(intervals,
    stopifnot(is.data.frame(gr.df))
    
    annoFrame <- cbind(gr.df, do.call(cbind, anno[c("ID", "description", "region", "type", "combinedRegionType")]))
-   
-   
-   makeGRangesFromDataFrame(out[,-4], keep.extra.columns = T)
-   
-   return(annoFrame)
+   return(makeGRangesFromDataFrame(annoFrame[,-4], keep.extra.columns = T))
 }
 
 
