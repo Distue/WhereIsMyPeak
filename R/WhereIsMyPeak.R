@@ -100,6 +100,12 @@ WhereIsMyPeak <- function(intervals,
    mappingTable = txdbParsed[["mappingTable"]]
    namingTable = txdbParsed[["namingTable"]]  
    
+   stopifnot(!is.null(mappingTable))
+   stopifnot(!is.null(namingTable))
+   stopifnot(!is.null(regions))
+   stopifnot(!is.null(txtoid))
+   
+   
    # initiate the empty data structure to store all information
    anno <- list( 
       #types = setNames(rep(NA, 4), c("CDS", "Intron", "5' UTR", "3' UTR")),
@@ -115,6 +121,7 @@ WhereIsMyPeak <- function(intervals,
    
    # Decide which annotation is the best
    decision <- lapply(1:length(intervals), function(i) {
+      # for all elements in annotation Order
       for(an in annotationOrder) {
          # check if annotation is not empty
          if( !is.null(anno$types[[an]]) && !is.na(anno$types[[an]]) ) {
@@ -314,37 +321,55 @@ getTypeForPlot <- function(type, region) {
 ##' Shuffles
 ##'
 ##' @title Shuffle
-##' @param annotatedPeaks GRanges object with a elementMetadata column 'region'
+##' @param annotatedPeaks GRanges object with a elementMetadata column 'region' and 'ID'
 ##' @param txdbParsed parsed TxDB infro
 ##' @return shuffled peaks
 ##' @export
-shuffle <- function(annotatedPeaks, txdbParsed) {
-   shuffledPeaks <- lapply(annotatedPeaks, shuffleRegion, txdbParsed)
+shuffle <- function(annotatedPeaks, txdbParsed, background = NULL, parallel = FALSE) {
+   shuffledPeaks <- NULL
+   if (parallel) {
+      shuffledPeaks <- bplapply(annotatedPeaks, shuffleRegion, txdbParsed, background)
+   } else {
+      shuffledPeaks <- lapply(annotatedPeaks, shuffleRegion, txdbParsed, background)
+   }
+
    shuffledPeaks.only <- shuffledPeaks[unlist(lapply(shuffledPeaks, class)) == "GRanges"]
    shuffledPeaks.only <- do.call(c, shuffledPeaks.only)
 
    return(shuffledPeaks.only)
 }
 
-
+##' @title Shuffle
+##' @param interval To be shuffled. GRanges object With a elementMetadata column 'region' and 'ID'
+##' @param txdbParsed parsed TxDB infro
+##' @param background Background. GRanges object with a elementMetadata column 'region' and 'ID'
 ##' @importFrom IRanges setdiff
 ##' @importFrom stats runif
 ##' @export
-shuffleRegion <- function(interval, txdbParsed) {
+shuffleRegion <- function(interval, txdbParsed, background = NULL) {
    # Test if region metadata column is avialable
-   stopifnot("region" %in% colnames(elementMetadata(annotatedPeaks)))
-   
+   stopifnot(length(interval) == 1)
+   stopifnot("region" %in% colnames(elementMetadata(interval)))
+   stopifnot("ID" %in% colnames(elementMetadata(interval)))
+   if(!is.null(background)) {
+      stopifnot(colnames(elementMetadata(interval)) == colnames(elementMetadata(background)))
+   }
+
    region <- as.character(elementMetadata(interval)[,"region"])
    id <- as.character(elementMetadata(interval)[,"ID"])
    transcriptIDs <- txdbParsed[["txtoid"]][txdbParsed[["txtoid"]][,"GENEID"] == id,"TXNAME"]
    
    if(!is.na(region) & region != "NA") { 
+      if(! is.null(background)) {
+         background <- background[which(elementMetadata(background)[,"ID"] %in% elementMetadata(interval)[,"ID"])]
+      } 
+                                    
       if(region == "Intron") {
-         reg <- unlist(txdbParsed[["regions"]][["Intron"]][transcriptIDs])
-         .doRegionShuffle(interval, reg, txdbParsed)
+         selected.regions <- unlist(txdbParsed[["regions"]][["Intron"]][transcriptIDs])
+         .doRegionShuffle(interval, selected.regions, background)
       } else { 
-         reg <- unlist(txdbParsed[["regions"]][["Exon"]][transcriptIDs])
-         .doRegionShuffle(interval, reg, txdbParsed) 
+         selected.regions <- unlist(txdbParsed[["regions"]][["Exon"]][transcriptIDs])
+         .doRegionShuffle(interval, selected.regions, background) 
       }
    } else {
       return(NA)
@@ -354,9 +379,13 @@ shuffleRegion <- function(interval, txdbParsed) {
 
 ##' @importFrom IRanges setdiff
 ##' @importFrom stats runif
-.doRegionShuffle <- function(interval, reg, txdbParsed) {
-   if(length(reg) > 0) {
-      non.peak.regions <- setdiff(reg, interval)
+.doRegionShuffle <- function(interval, selected.regions, background = NULL) {
+   if(length(selected.regions) > 0) {
+      if(is.null(background)) {
+         non.peak.regions <- selected.regions
+      } else {
+         non.peak.regions <- setdiff(selected.regions, background)
+      }
       
       cumsum.width <- cumsum(width(non.peak.regions))
       selected.region.id <- runif(1, min = 1, max = cumsum.width[-1])

@@ -12,9 +12,9 @@ by ChIPseeker, however overcomes limited functionlity in the genomic annotation.
 
 Load the package
 ```{r} 
-library(WhereIsMyPeak)
-library(GenomicFeatures)
-library(biomaRt)
+suppressPackageStartupMessages(library(WhereIsMyPeak))
+suppressPackageStartupMessages(library(GenomicFeatures))
+suppressPackageStartupMessages(library(biomaRt))
 ```
 
 ## Load peaks
@@ -142,16 +142,83 @@ Then simply with one line we can annotate all peaks
 annotatedPeaks <- WhereIsMyPeak(peaks, txdbParsed, annotationOrder, exonAnnotationOrder, typeOrder)
 ```
 
+```{r, echo=FALSE, eval=FALSE} 
+save(list=c("annotatedPeaks"), file="../data/annotatedPeaks.rda")
+```
 
-If peaks were in a list and you have to remove the "chr" of the chromosome name, then you would do something like this.
+
+You will get back a GRanges object with the annotations stored in the elementMetadata columns
+```{r} 
+head(annotatedPeaks) 
+```
+
+To export this to a table, simple convert it to a data.frame
+```{r} 
+as.data.frame(annotatedPeaks)
+```
+
+If you want to continue with annotated peaks you can also load them here
+
+```{r, eval=FALSE} 
+data("annotatedPeaks", package="WhereIsMyPeak")
+```
 
 ## Shuffle
 
 This function shuffles annotated peaks, so that each annotated peak will return an unbound region on the same genomic information. For example, if the peak is on an exon, the shuffled peak will be on an exon of the same gene. If the peak was on an intron it will return a region on the same gene in the intron. It tries to preserve the width of the peak, if there is not enough 'rest - annotation' left, it will return the rest. If the peak was not annotated, it does not shuffle this peak because we do not know on what kind of feature it was.
 
+First lets shuffle only one feature and do not care if the feature is overlapping with other peaks
+
 ```{r} 
-shuffledPeaks <- shuffle(annotatedPeaks, txdbParsed)
+shuffleRegion(annotatedPeaks[3], txdbParsed)
 ```
+
+If we don't want it to overlap with the same peak, we just put it as background
+
+```{r} 
+shuffleRegion(annotatedPeaks[3], txdbParsed, background = annotatedPeaks[3])
+```
+
+If we do not want the shuffled peak to overlap with any of our peak list then we put in the whole peak list in the background
+
+
+```{r} 
+shuffleRegion(annotatedPeaks[3], txdbParsed, background = annotatedPeaks)
+```
+
+
+If we want to apply shuffling as described above on the whole peak list, the command shuffle will do this for a whole GRanges object.
+
+```{r} 
+shuffledPeaks <- shuffle(annotatedPeaks, txdbParsed, background = annotatedPeaks)
+```
+
+You can also parallelize the call using parallel = T
+
+```{r, eval = FALSE} 
+shuffledPeaks <- shuffle(annotatedPeaks, txdbParsed, background = annotatedPeaks, parallel = T)
+```
+
+Display the shuffled peaks
+```{r} 
+head(shuffledPeaks)
+```
+
+Let's test if they overlap
+```{r} 
+sum(countOverlaps(shuffledPeaks, annotatedPeaks))
+```
+
+
+```{r, echo=FALSE}
+save(list="shuffledPeaks", file="../data/shuffledPeaks.rda")
+```
+
+You can load a set of shuffled peaks here
+```{r} 
+data("annotatedPeaks", package="WhereIsMyPeak")
+```
+
 
 
 ##  Benchmark
@@ -184,5 +251,6 @@ ensemblizePeaks <- function(x) {
 ```{r}
 sessionInfo()
 ```
+
 
 

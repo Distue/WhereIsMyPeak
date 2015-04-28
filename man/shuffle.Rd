@@ -4,10 +4,10 @@
 \alias{shuffle}
 \title{Shuffle}
 \usage{
-shuffle(annotatedPeaks, txdbParsed)
+shuffle(annotatedPeaks, txdbParsed, background = NULL)
 }
 \arguments{
-\item{annotatedPeaks}{GRanges object with a elementMetadata column 'region'}
+\item{annotatedPeaks}{GRanges object with a elementMetadata column 'region' and 'ID'}
 
 \item{txdbParsed}{parsed TxDB infro}
 }
