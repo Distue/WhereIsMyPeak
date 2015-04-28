@@ -252,5 +252,15 @@ ensemblizePeaks <- function(x) {
 sessionInfo()
 ```
 
+## Compile this page
+```{r, eval=FALSE}
+library(knitrBootstrap)
+knit_bootstrap("WhereIsMyPeak.Rmd", show_code=TRUE, boot_style="Readable")
+```
 
+## Install this package via Github
+```{r} 
+library(devtools)
+devtools::install_github("distue/WhereIsMyPeak")
+```
 
