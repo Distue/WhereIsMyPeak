@@ -154,7 +154,7 @@ head(annotatedPeaks)
 
 To export this to a table, simple convert it to a data.frame
 ```{r} 
-as.data.frame(annotatedPeaks)
+head(as.data.frame(annotatedPeaks))
 ```
 
 If you want to continue with annotated peaks you can also load them here
@@ -235,6 +235,8 @@ shine(x)
 
 If your peaks are not in the ensembl format, you want to remove the "chr" prefix
 and you want to rewrite the mitochondria information.
+
+(Note: this is not perfect and can be certainly improved)
 
 ```{r} 
 ensemblizePeaks <- function(x) {
