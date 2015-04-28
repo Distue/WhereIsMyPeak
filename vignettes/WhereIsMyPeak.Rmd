@@ -10,6 +10,20 @@ output: html_document
 WhereIsMyPeak does genomic annotation with priorisation what gene types you are interested. This package was inspired
 by ChIPseeker, however overcomes limited functionlity in the genomic annotation.
 
+
+## Install this package via Github
+
+The package is Open Source and can be downloaded here
+- [Github](https://github.com/Distue/WhereIsMyPeak "Where is my peak")
+
+In R you can directly install it with this command
+
+```{r} 
+library(devtools)
+devtools::install_github("distue/WhereIsMyPeak")
+```
+
+
 Load the package
 ```{r} 
 suppressPackageStartupMessages(library(WhereIsMyPeak))
@@ -24,14 +38,23 @@ Peaks or Intervals are stored as GRanges object.
 Here we load a small example data set
 ```{r} 
 data("peaks", package="WhereIsMyPeak")
-peaks
+```
+
+Let's preview the peaks
+```{r}
+head(peaks)
 ```
 
 ## Load annotation
 
-Here we load load the annotation using a TxDB Ensembl Build from biomaRt. 
+We can load the annotation using a TxDB Ensembl Build from biomaRt. 
+```{r, eval=FALSE} 
+txdb <- makeTranscriptDbFromBiomart()
+```
 
-```{r}
+We also can load an specific annotation via the ensembl Archive page:
+
+```{r, warning=FALSE,message=FALSE}
 # ENSEMBL GENES 75
 txdb <- makeTranscriptDbFromBiomart( biomart         = "ENSEMBL_MART_ENSEMBL",
                                      dataset         = "hsapiens_gene_ensembl",
@@ -41,16 +64,30 @@ txdb <- makeTranscriptDbFromBiomart( biomart         = "ENSEMBL_MART_ENSEMBL",
                                      host            = "feb2014.archive.ensembl.org",
                                      port            = 80,
                                      miRBaseBuild    = NA )
-
-ensembl75 <- useMart(host="feb2014.archive.ensembl.org", biomart="ENSEMBL_MART_ENSEMBL", dataset="hsapiens_gene_ensembl")        
 ```
 
 
 We load additional information about gene biotypes and gene description which is not available in the TxDB
 (Note: This package is currently under development, this could be included in a custom TxDB build in future)
-```{r} 
-ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl75) 
 
+For this we can load the latest ensembl annotation
+```{r, eval=FALSE} 
+ensembl.mart <- useMart(biomart="ensembl")
+```
+
+or we can load a specific from the archive
+```{r} 
+ensembl.mart <- useMart(host="feb2014.archive.ensembl.org", biomart="ENSEMBL_MART_ENSEMBL")        
+```
+
+Then we load the dataset 
+
+```{r} 
+ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl.mart) 
+```
+
+and load the necessary tables for biotype and gene description
+```{r} 
 mappingTable <- getBM(c("ensembl_gene_id", "gene_biotype") , filters="", values=T, uniqueRows = TRUE, mart=ensembl)  
 rownames(mappingTable) <- mappingTable[,1]  
 
@@ -260,9 +297,5 @@ library(knitrBootstrap)
 knit_bootstrap("WhereIsMyPeak.Rmd", show_code=TRUE, boot_style="Readable")
 ```
 
-## Install this package via Github
-```{r} 
-library(devtools)
-devtools::install_github("distue/WhereIsMyPeak")
-```
+
 
