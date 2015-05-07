@@ -380,7 +380,7 @@ shuffleRegion <- function(interval, txdbParsed, background = NULL) {
 ##' @importFrom IRanges setdiff
 ##' @importFrom stats runif
 .doRegionShuffle <- function(interval, selected.regions, background = NULL) {
-   if(length(selected.regions) > 0) {
+   if(length(selected.regions) > 0 && !is.na(interval)) {
       if(is.null(background)) {
          non.peak.regions <- selected.regions
       } else {
@@ -394,8 +394,15 @@ shuffleRegion <- function(interval, txdbParsed, background = NULL) {
       if(width(selected.region) < width(interval)) {
          return(selected.region)
       } else {
-         .start = runif(1, min = start(selected.region),
-                        max = (end(selected.region) - width(interval)))
+         .min = start(selected.region)
+         .max = (end(selected.region) - width(interval))
+         .start = 1
+         if(.max <= .min ) { 
+            .start = .min
+         } else { 
+            .start = runif(1, min = .min,
+                           max = .max)
+         }
          
          return( makeGRangesFromDataFrame(
             data.frame(seqnames = seqnames(interval),

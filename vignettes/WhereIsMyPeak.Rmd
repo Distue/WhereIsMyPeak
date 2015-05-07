@@ -18,7 +18,7 @@ The package is Open Source and can be downloaded here
 
 In R you can directly install it with this command
 
-```{r} 
+```{r, eval=FALSE} 
 library(devtools)
 devtools::install_github("distue/WhereIsMyPeak")
 ```
