@@ -406,8 +406,7 @@ shuffleRegion <- function(interval, txdbParsed, background = NULL) {
          if(.max <= .min ) { 
             .start = .min
          } else { 
-            .start = runif(1, min = .min,
-                           max = .max)
+            .start = runif(1, min = .min, max = .max)
          }
          
          return( makeGRangesFromDataFrame(
