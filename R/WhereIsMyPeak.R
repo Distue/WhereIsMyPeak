@@ -380,7 +380,8 @@ shuffleRegion <- function(interval, txdbParsed, background = NULL) {
 ##' @importFrom IRanges setdiff
 ##' @importFrom stats runif
 .doRegionShuffle <- function(interval, selected.regions, background = NULL) {
-   if(length(selected.regions) > 0 && !is.na(interval)) {
+   cat(paste(as.character(seqnames(interval)), " ", start(interval), " ", end(interval), " ", strand(interval), sep="")) 
+   if(length(selected.regions) > 0 && !is.na(interval) ) {
       if(is.null(background)) {
          non.peak.regions <- selected.regions
       } else {
