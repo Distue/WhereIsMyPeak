@@ -380,7 +380,7 @@ shuffleRegion <- function(interval, txdbParsed, background = NULL) {
 ##' @importFrom IRanges setdiff
 ##' @importFrom stats runif
 .doRegionShuffle <- function(interval, selected.regions, background = NULL) {
-   cat(paste(as.character(seqnames(interval)), " ", start(interval), " ", end(interval), " ", strand(interval), sep="")) 
+   #cat(paste(as.character(seqnames(interval)), " ", start(interval), " ", end(interval), " ", strand(interval), sep="")) 
    if(length(selected.regions) > 0 && !is.na(interval) ) {
       if(is.null(background)) {
          non.peak.regions <- selected.regions
@@ -388,9 +388,14 @@ shuffleRegion <- function(interval, txdbParsed, background = NULL) {
          non.peak.regions <- setdiff(selected.regions, background)
       }
       
+      # there is non hit region left
+      if(is.na(selected.regions) || is.null(selected.regions) || sum(width(selected.regions)) <= 0) {
+         return(NA)
+      }
+            
       cumsum.width <- cumsum(width(non.peak.regions))
-      selected.region.id <- runif(1, min = 1, max = cumsum.width[-1])
-      selected.region <- non.peak.regions[cumsum.width > selected.region.id][1]
+      selected.region.id <- runif(1, min = 1, max = cumsum.width)
+      selected.region <- non.peak.regions[cumsum.width >= selected.region.id][1]
       
       if(width(selected.region) < width(interval)) {
          return(selected.region)
